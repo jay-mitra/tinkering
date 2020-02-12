@@ -24,5 +24,5 @@ for word in words_list:
     else:
         words_dict[word] = 1
 
-max_word = (max(words_dict.items(), key=operator.itemgetter(1)))
+max_word = max(words_dict.items(), key=operator.itemgetter(1))
 print ("The most common word is \"{}\" with {} occurences.".format(max_word[0], max_word[1]))
