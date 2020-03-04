@@ -1,58 +1,76 @@
-import random
-import re
-animal_list = ["elephant"]
-animal = random.choice(animal_list)
-guesses = ""
-guessed_letters = ""
-list_animal = list(animal)
-list_guesses = list(guesses)
+#!/usr/bin/env python
+import requests
+from bs4 import BeautifulSoup as Soup
 
+url = "https://en.wikipedia.org/wiki/List_of_craters_on_the_Moon"
+# use requests to get the url
+response = requests.get(url)
+# get the content from the response
+content = response.content
+# parse the content with soup
+soup = Soup(content, 'lxml')
 
-# get the number of letters in the animal name (use len)
-guess_amount = len(animal) + 3
-print("\nYou have " + str(guess_amount) + " guesses to guess the mystery animal.")
+# look at the web page source and find out the container for the information we want
+# each crater is stored in a div that has the class 'gallerybox'
+# tell soup to get the div gallerybox
+all_gallerybox = soup.find_all("li", "gallerybox")
+# print (all_gallerybox[0])
 
-# set the number of guesses to be the animal name length plus 3
+# crater name and crater diameter are inside a div that has the class 'gallerytext'
+# tell soup to get the div gallerytext from div gallerybox
+all_gallerytext = soup.find_all("div", "gallerytext")
+# print (all_gallerytext[0])
 
-# use a while loop with a sentry variable
+# crater name is the string of an anchor tag that is inside a div that has a class 'gallerytext'
+# tell soup to get the anchor tag from div gallerytext
+crater_names = []
+for line in all_gallerytext:
+    name = line.find("a")
+    if name is not None:
+        crater_names.extend(name)
+print ("crater_names")
+print (crater_names[0])
 
-def progress():
-    for i in range(len(animal)):
-        if animal[i] in guesses:
-            print(animal[i], end=""),
-        else:
-            print("_", end="")
+# crater diameter is the string of a span tag that is inside a div that has class 'gallerytext'
+# tell soup to get the span tag from div gallerytext
+crater_diameters = []
+for line in all_gallerytext:
+    span = line.find("span")
+    if span is not None:
+        crater_diameters.append(span.string)
+print ("crater_diameters")
+print (crater_diameters[0])
 
+# crater thumbnail is inside of the div that has the class 'thumb'
+# tell soup to get the div thumb from div gallerybox
+all_thumbnails = []
+for line in all_gallerybox:
+    thumb = line.find("div", attrs={'class': 'thumb'})
+    if thumb is not None:
+        all_thumbnails.append(thumb)
+print ("all_thumbnails")
+print (all_thumbnails[0])
+
+# crater thumbnail source is the 'src' key inside the 'attrs' dictionary of the img tag from div thumb
+# tell soup to get the img tag from div thumb
+thumbnails = []
+for thumb in all_thumbnails:
+    image = thumb.find("img")
+    link = image.get("src")
+    if link is not None:
+        thumbnails.append(link)
+print ("thumbnails")
+print (thumbnails[0])
+
+#store name = diameter or name = thumbnail in a dictionary
+dict_craters = {}
 counter = 0
-
-while counter < guess_amount:
-    print("\n")
-    guess = input("Enter a letter. You have " + str(guess_amount - counter) + " guess(es) remaining. ")
-    if len(guess) != 1:
-        print("\nLimit text to one character.")
-        continue
-    elif not re.match("^[a-z]*$", guess):
-        print("\nEnter lower case letters only.")
-        continue
+for crater in crater_names:
+    dict_craters[crater] = crater_diameters[counter]
     counter += 1
-    guesses += guess
-    if guess in animal:
-        print("\nYour letter is in the word! \n\nYou have guessed the letter(s) \"" + guesses + "\" so far.")
-        progress()
-        result = all(item in list_guesses for item in list_animal)
-        print (guess)
-        print (list_guesses)
-        print (list_animal)
-        print (result)
-        if result == True:
-            print("\nYou guessed the animal! Well done!")
-            break
-        else:
-            continue
-    elif guess not in animal:
-        print("\nYour letter is not in the word!")
-        if counter == guess_amount:
-            break
-        continue
-if counter == guess_amount:
-    print("\nYou have run out of guesses. You lose!")
+
+# print dictionary key/value to a file as two columns separated by a comma
+with open("output.txt", "w") as outfile:
+    for crater, diameter in dict_craters.items():
+        outfile.writelines("{},{}".format(crater, diameter))
+        outfile.write("\n")
